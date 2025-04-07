@@ -11,14 +11,17 @@ import {
   Text,
   Dimensions,
 } from "react-native";
-
-const BtnAgregar = ({ onAgregarTarea }) => {
+import { useTasks } from "../../src/hooks/useTasks";
+const BtnAgregar = () => {
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [isTitulo, setTitulo] = useState("");
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [esRecurrente, setEsRecurrente] = useState(false);
   const inputRef = useRef(null);
+
+  const { addTask, refreshTasks } = useTasks();
 
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
@@ -47,21 +50,27 @@ const BtnAgregar = ({ onAgregarTarea }) => {
     }
   };
 
-  const handleAgregar = () => {
+  const handleAgregar = async () => {
     if (isTitulo.trim() === "") return;
 
     const nuevaTarea = {
-      id: Date.now().toString(),
       titulo: isTitulo,
-      fecha: date, // Usamos la fecha directamente sin formatear
-      estado: "1",
+      fecha: date,
+      estado: 1, // 1 = pendiente
+      es_recurrente: esRecurrente,
     };
 
-    onAgregarTarea(nuevaTarea);
-    setTitulo("");
-    setDate(new Date());
-    Keyboard.dismiss();
-    setIsAdding(false);
+    try {
+      await addTask(nuevaTarea);
+      setTitulo("");
+      setDate(new Date());
+      setEsRecurrente(false);
+      Keyboard.dismiss();
+      setIsAdding(false);
+      refreshTasks(); // Actualizar la lista de tareas
+    } catch (error) {
+      console.error("Error al agregar tarea:", error);
+    }
   };
 
   return (
@@ -88,14 +97,25 @@ const BtnAgregar = ({ onAgregarTarea }) => {
               placeholder="Título"
               value={isTitulo}
               onChangeText={setTitulo}
+              onSubmitEditing={handleAgregar}
             />
             <TouchableOpacity
               style={styles.dateButton}
               onPress={() => setShowPicker(true)}
             >
               <Text style={styles.dateButtonText}>
-                {date.toLocaleDateString("es-ES")}{" "}
-                {/* Mostramos la fecha sin formato especial */}
+                {date.toLocaleDateString("es-ES")}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.recurrenceButton,
+                esRecurrente && styles.recurrenceButtonActive,
+              ]}
+              onPress={() => setEsRecurrente(!esRecurrente)}
+            >
+              <Text style={styles.recurrenceButtonText}>
+                {esRecurrente ? "✓" : "R"}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.addButton} onPress={handleAgregar}>
@@ -112,7 +132,6 @@ const BtnAgregar = ({ onAgregarTarea }) => {
   );
 };
 
-// ... (los estilos permanecen igual)
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
@@ -156,6 +175,23 @@ const styles = StyleSheet.create({
   dateButtonText: {
     color: "#333",
     fontSize: 16,
+  },
+  recurrenceButton: {
+    backgroundColor: "#e0e0e0",
+    borderRadius: 20,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 5,
+  },
+  recurrenceButtonActive: {
+    backgroundColor: "#70b2b2",
+  },
+  recurrenceButtonText: {
+    color: "#333",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   addButton: {
     backgroundColor: "#70b2b2",

@@ -1,11 +1,13 @@
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
   ActivityIndicator,
   TouchableOpacity,
   ScrollView,
+  TextInput,
+  Alert,
 } from "react-native";
 import { styles } from "../../src/styles/detailTask";
 import { useTasks } from "../../src/hooks/useTasks";
@@ -14,20 +16,93 @@ import Item from "../../src/components/Item";
 export default function Details() {
   const { id } = useLocalSearchParams();
   const navigation = useNavigation();
-  const { tasks, loading, toggleComplete, updateTask } = useTasks();
+  const { getTaskById, loading, toggleComplete, updateTask, deleteTask } =
+    useTasks();
+  const [item, setItem] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
 
-  // Encuentra el ítem directamente desde las tasks del hook
-  const item = tasks.find((task) => task.id === id);
+  // Cargar la tarea específica
+  useEffect(() => {
+    const loadTask = async () => {
+      try {
+        const task = await getTaskById(id);
+        setItem(task);
+        setEditedTitle(task?.titulo || "");
+      } catch (error) {
+        console.error("Error loading task:", error);
+      }
+    };
+
+    loadTask();
+  }, [id, getTaskById]);
 
   useEffect(() => {
     if (item) {
       navigation.setOptions({
         title: item.titulo,
+        headerRight: () => (
+          <TouchableOpacity onPress={handleDelete} style={styles.deleteButton}>
+            <Text style={styles.deleteButtonText}>Eliminar</Text>
+          </TouchableOpacity>
+        ),
       });
     }
   }, [item, navigation]);
 
-  if (loading) {
+  const handleToggleComplete = async () => {
+    try {
+      await toggleComplete(id);
+      const updatedTask = await getTaskById(id);
+      setItem(updatedTask);
+    } catch (error) {
+      Alert.alert("Error", "No se pudo actualizar el estado de la tarea");
+    }
+  };
+
+  const handleUpdateTask = async () => {
+    try {
+      const updatedTask = await updateTask(id, {
+        titulo: editedTitle,
+        fecha: item.fecha,
+        es_recurrente: item.es_recurrente,
+      });
+      setItem(updatedTask);
+      setIsEditing(false);
+      navigation.setOptions({
+        title: updatedTask.titulo,
+      });
+    } catch (error) {
+      Alert.alert("Error", "No se pudo actualizar la tarea");
+    }
+  };
+
+  const handleDelete = async () => {
+    Alert.alert(
+      "Confirmar",
+      "¿Estás seguro de que quieres eliminar esta tarea?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Eliminar",
+          onPress: async () => {
+            try {
+              await deleteTask(id);
+              navigation.goBack();
+            } catch (error) {
+              Alert.alert("Error", "No se pudo eliminar la tarea");
+            }
+          },
+          style: "destructive",
+        },
+      ]
+    );
+  };
+
+  if (loading && !item) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" />
@@ -38,28 +113,45 @@ export default function Details() {
   if (!item) {
     return (
       <View style={styles.container}>
-        <Text>No se encontró el ítem</Text>
+        <Text>No se encontró la tarea</Text>
       </View>
     );
   }
-  const handleUpdateTask = (updatedTask) => {
-    updateTask(updatedTask);
-    navigation.setOptions({
-      title: updatedTask.titulo,
-    });
-  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.taskList}>
-        {/* Usamos el componente Item con la función toggleComplete del hook */}
-        <Item
-          elemento={item}
-          presionado={() => {}}
-          onToggleComplete={() => toggleComplete(item.id)}
-          customStyle={styles.taskItem}
-          isDetailView={true}
-          onUpdateTask={handleUpdateTask}
-        />
+        {isEditing ? (
+          <View style={styles.editContainer}>
+            <TextInput
+              style={styles.editInput}
+              value={editedTitle}
+              onChangeText={setEditedTitle}
+              autoFocus
+            />
+            <TouchableOpacity
+              style={styles.saveButton}
+              onPress={handleUpdateTask}
+            >
+              <Text style={styles.saveButtonText}>Guardar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setIsEditing(false)}
+            >
+              <Text style={styles.cancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <Item
+            elemento={item}
+            presionado={() => setIsEditing(true)}
+            onToggleComplete={handleToggleComplete}
+            customStyle={styles.taskItem}
+            isDetailView={true}
+          />
+        )}
+
         <TouchableOpacity style={styles.addStepButton}>
           <Text style={styles.addStepText}>+ Agregar paso</Text>
         </TouchableOpacity>
@@ -95,6 +187,7 @@ export default function Details() {
           month: "short",
           year: "numeric",
         })}
+        {item.es_recurrente && " • Recurrente"}
       </Text>
     </ScrollView>
   );

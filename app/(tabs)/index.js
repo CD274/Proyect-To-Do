@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   Text,
+  View,
+  RefreshControl,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Cabecera from "../../src/components/Cabecera";
@@ -18,23 +20,36 @@ import { useTasks } from "../../src/hooks/useTasks";
 export default function HomeScreen() {
   const [selectedId, setSelectedId] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
-  const { tasks, loading, toggleComplete, addTask, refreshTasks } = useTasks();
-  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Actualización segura cuando la pantalla recibe foco
+  const {
+    tasks,
+    loading,
+    error,
+    toggleComplete,
+    deleteTask,
+    refreshTasks,
+    getTasksByStatus,
+  } = useTasks();
+
+  // Filtrar tareas según el estado
+  const filteredTasks = showCompleted
+    ? getTasksByStatus(0) // Tareas completadas
+    : getTasksByStatus(1); // Tareas pendientes
+
+  // Manejar el refresh manual
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refreshTasks();
+    setRefreshing(false);
+  }, [refreshTasks]);
+
+  // Actualizar al recibir foco
   useFocusEffect(
     useCallback(() => {
-      setNeedsRefresh(true);
-    }, [])
-  );
-
-  // Efecto separado para manejar el refresh cuando es necesario
-  useEffect(() => {
-    if (needsRefresh) {
       refreshTasks();
-      setNeedsRefresh(false);
-    }
-  }, [needsRefresh, refreshTasks]);
+    }, [refreshTasks])
+  );
 
   const renderItem = ({ item }) => (
     <Item
@@ -43,18 +58,16 @@ export default function HomeScreen() {
         setSelectedId(item.id);
         router.push(`/details/${item.id}`);
       }}
-      onToggleComplete={() => {
-        toggleComplete(item.id);
-        setNeedsRefresh(true); // Marcar para refrescar después de cambiar estado
+      onToggleComplete={async () => {
+        await toggleComplete(item.id);
+      }}
+      onDelete={async () => {
+        await deleteTask(item.id);
       }}
     />
   );
 
-  const filteredTasks = tasks.filter((item) =>
-    showCompleted ? item.estado === "1" : item.estado === "0"
-  );
-
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <SafeAreaProvider>
         <SafeAreaView style={styles.container}>
@@ -64,25 +77,49 @@ export default function HomeScreen() {
     );
   }
 
+  if (error) {
+    return (
+      <SafeAreaProvider>
+        <SafeAreaView style={styles.container}>
+          <Text style={{ color: "red", textAlign: "center" }}>{error}</Text>
+        </SafeAreaView>
+      </SafeAreaProvider>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <Cabecera />
+
         <FlatList
           data={filteredTasks}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          extraData={{ selectedId, needsRefresh }} // Actualizar cuando cambia
+          keyExtractor={(item) => item.id.toString()}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>
+                {showCompleted
+                  ? "No hay tareas completadas"
+                  : "No hay tareas pendientes"}
+              </Text>
+            </View>
+          }
         />
+
         <TouchableOpacity
           style={styles.filterButton}
           onPress={() => setShowCompleted(!showCompleted)}
         >
           <Text style={styles.filterButtonText}>
-            {showCompleted ? "Pendientes" : "Realizadas"}
+            {showCompleted ? "Mostrar Pendientes" : "Mostrar Completadas"}
           </Text>
         </TouchableOpacity>
-        <BtnAgregar onAgregarTarea={addTask} />
+
+        <BtnAgregar />
       </SafeAreaView>
     </SafeAreaProvider>
   );
