@@ -1,13 +1,10 @@
 import { Stack } from "expo-router";
-export default function RootLayout() {
+
+export default function Layout() {
   return (
-    <Stack>
-      <Stack.Screen
-        name="(tabs)"
-        options={{
-          headerShown: false, // Muestra el header
-        }}
-      />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="details/[id]" />
     </Stack>
   );
 }

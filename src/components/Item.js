@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, TextInput, Button } from "react-native";
+import { View, Text, TouchableOpacity, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { styles } from "../styles/HomeStyles";
@@ -14,16 +14,14 @@ const Item = ({
 }) => {
   const [isStarFilled, setStarFilled] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(elemento.titulo);
-  const [editedDate, setEditedDate] = useState(new Date(elemento.fecha));
+  const [editedTitle, setEditedTitle] = useState(elemento.name);
+  const [editedDate, setEditedDate] = useState(new Date(elemento.date));
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   const handlePress = () => {
     if (isDetailView) {
-      // En vista de detalles, activa edición con clic simple
       setIsEditing(true);
     } else {
-      // En la lista principal, navega a detalles
       presionado();
     }
   };
@@ -31,8 +29,8 @@ const Item = ({
   const handleSave = () => {
     const updatedTask = {
       ...elemento,
-      titulo: editedTitle,
-      fecha: editedDate.toISOString(),
+      name: editedTitle,
+      date: editedDate.toISOString(),
     };
     onUpdateTask(updatedTask);
     setIsEditing(false);
@@ -46,8 +44,8 @@ const Item = ({
   };
 
   useEffect(() => {
-    setEditedTitle(elemento.titulo);
-    setEditedDate(new Date(elemento.fecha));
+    setEditedTitle(elemento.name);
+    setEditedDate(new Date(elemento.date));
   }, [elemento]);
 
   return (
@@ -58,8 +56,15 @@ const Item = ({
     >
       <TouchableOpacity
         onPress={onToggleComplete}
-        style={[styles.circle, elemento.estado === "0" && styles.filledCircle]}
-      />
+        style={[
+          styles.circle,
+          elemento.isDaily ? styles.filledCircle : styles.emptyCircle,
+        ]}
+      >
+        {elemento.isDaily && (
+          <Ionicons name="checkmark" size={18} color="white" />
+        )}
+      </TouchableOpacity>
 
       <View style={styles.textContainer}>
         {isEditing && isDetailView ? (
@@ -118,14 +123,13 @@ const Item = ({
         ) : (
           <>
             <Text
-              style={
-                elemento.estado === "1" ? styles.title : styles.textCompleted
-              }
+              style={elemento.isDaily ? styles.textCompleted : styles.title}
+              numberOfLines={2}
             >
-              {elemento.titulo}
+              {elemento.name}
             </Text>
             <Text style={styles.date}>
-              {new Date(elemento.fecha).toLocaleDateString("es-ES", {
+              {new Date(elemento.date).toLocaleDateString("es-ES", {
                 weekday: "short",
                 day: "numeric",
                 month: "short",
@@ -135,16 +139,6 @@ const Item = ({
           </>
         )}
       </View>
-
-      {!isEditing && (
-        <TouchableOpacity onPress={() => setStarFilled(!isStarFilled)}>
-          <Ionicons
-            name={isStarFilled ? "star" : "star-outline"}
-            size={25}
-            color={"gray"}
-          />
-        </TouchableOpacity>
-      )}
     </TouchableOpacity>
   );
 };

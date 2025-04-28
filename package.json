@@ -16,9 +16,15 @@
     "@react-native-community/datetimepicker": "8.2.0",
     "@react-navigation/elements": "^2.3.1",
     "@react-navigation/native": "^7.0.19",
+    "babel-plugin-inline-import": "^3.0.0",
+    "drizzle-orm": "^0.42.0",
     "expo": "~52.0.40",
+    "expo-build-properties": "~0.13.2",
+    "expo-drizzle-studio-plugin": "^0.1.2",
     "expo-router": "~4.0.20",
+    "expo-sqlite": "^15.1.4",
     "expo-status-bar": "~2.0.1",
+    "expo-updates": "~0.27.4",
     "react": "18.3.1",
     "react-native": "^0.76.9",
     "react-native-keyboard-toolbar": "^0.0.8",
@@ -27,11 +33,13 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@react-native-community/cli": "latest",
+    "drizzle-kit": "^0.31.0",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~8.0.1",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.5",
-    "prettier": "^3.5.3"
+    "prettier": "^3.5.3",
+    "@types/react": "~18.3.12"
   },
   "private": true
 }

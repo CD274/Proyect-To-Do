@@ -50,11 +50,15 @@ const BtnAgregar = ({ onAgregarTarea }) => {
   const handleAgregar = () => {
     if (isTitulo.trim() === "") return;
 
+    // Formatear la fecha como string ISO para la base de datos
+    const dateString = date.toISOString();
+
     const nuevaTarea = {
-      id: Date.now().toString(),
-      titulo: isTitulo,
-      fecha: date, // Usamos la fecha directamente sin formatear
-      estado: "1",
+      name: isTitulo,
+      date: dateString,
+      isDone: false, // Por defecto la tarea no está completada
+      isDaily: false, // Por defecto no es una tarea diaria
+      listId: null, // No asignada a ninguna lista por defecto
     };
 
     onAgregarTarea(nuevaTarea);

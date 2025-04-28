@@ -51,7 +51,7 @@ export default function HomeScreen() {
   );
 
   const filteredTasks = tasks.filter((item) =>
-    showCompleted ? item.estado === "1" : item.estado === "0"
+    showCompleted ? item.isDaily === true : item.isDaily === false
   );
 
   if (loading) {

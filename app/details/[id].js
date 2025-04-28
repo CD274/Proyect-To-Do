@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -14,20 +14,27 @@ import Item from "../../src/components/Item";
 export default function Details() {
   const { id } = useLocalSearchParams();
   const navigation = useNavigation();
-  const { tasks, loading, toggleComplete, updateTask } = useTasks();
-
-  // Encuentra el ítem directamente desde las tasks del hook
-  const item = tasks.find((task) => task.id === id);
+  const { currentTask, taskLoading, toggleComplete, updateTask, loadTask } =
+    useTasks();
+  const [localTask, setLocalTask] = useState(null);
 
   useEffect(() => {
-    if (item) {
+    const fetchTask = async () => {
+      const task = await loadTask(id);
+      setLocalTask(task);
+    };
+    fetchTask();
+  }, [id]);
+
+  useEffect(() => {
+    if (localTask) {
       navigation.setOptions({
-        title: item.titulo,
+        title: localTask.name || "Detalle",
       });
     }
-  }, [item, navigation]);
+  }, [localTask, navigation]);
 
-  if (loading) {
+  if (taskLoading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" />
@@ -35,27 +42,29 @@ export default function Details() {
     );
   }
 
-  if (!item) {
+  if (!localTask) {
     return (
       <View style={styles.container}>
-        <Text>No se encontró el ítem</Text>
+        <Text>No se encontró la tarea</Text>
       </View>
     );
   }
+
   const handleUpdateTask = (updatedTask) => {
     updateTask(updatedTask);
+    setLocalTask(updatedTask);
     navigation.setOptions({
-      title: updatedTask.titulo,
+      title: updatedTask.name,
     });
   };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.taskList}>
-        {/* Usamos el componente Item con la función toggleComplete del hook */}
         <Item
-          elemento={item}
+          elemento={localTask}
           presionado={() => {}}
-          onToggleComplete={() => toggleComplete(item.id)}
+          onToggleComplete={() => toggleComplete(localTask.id)}
           customStyle={styles.taskItem}
           isDetailView={true}
           onUpdateTask={handleUpdateTask}
@@ -89,7 +98,7 @@ export default function Details() {
 
       <Text style={styles.creationDate}>
         Creada el{" "}
-        {new Date(item.fecha).toLocaleDateString("es-ES", {
+        {new Date(localTask.date).toLocaleDateString("es-ES", {
           weekday: "short",
           day: "numeric",
           month: "short",
